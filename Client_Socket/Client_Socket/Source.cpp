@@ -51,35 +51,50 @@ int main(int argc, char *argv[])
 		perror("error connecting");
 	printf("[Client] Connected to server: %s on portnumber: %d\n", server->h_name, portnum);
 
-	memset(send_buff, 0, 256);									//clear send buffer first time only
+	int request[41]{ 0 };
 
 	while (true) {
 		FD_ZERO(&readfds);										//clear socket set
 		FD_SET(sockfd, &readfds); 								//add socket to set
 
 		struct timeval timeout = { 1,0 }; 						//1 second timeout (needs to be reset
-		printf("[Client] Please enter the password: \n");		//since 'select' decrements it)
 
-		fgets(send_buff, 255, stdin); 							//block until data is available
+		request[0] = 1;
+		request[1] = 300;
+		request[2] = 100;
+		request[3] = 40;
+		request[4] = 40;
 
-		data_write = send(sockfd, send_buff, strlen(send_buff), 0); //send data to server
+
+		data_write = send(sockfd, (char*)request, 41 * sizeof(int), 0); //send data to server
 		if (data_write < 0) {
 			printf("Error sending message.\n");
-			memset(send_buff, 0, 256);
+			memset(request, 0, 256);
 			continue;											//if data is invalid try again
 		}
-		//sleep(1);												//delay so server can process message
+		Sleep(1000);												//delay so server can process message
+
 		data_read = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
 		if (data_read < 0) {
 			perror("error reading from socket");
 			exit(1);
 		}
 		else if (data_read > 0) {								//if socket contains data read it
-			memset(recieve_buff, 0, 256);						//clear receive_buff (server clears send_buff)
+			memset(recieve_buff, 0, 2500);						//clear receive_buff (server clears send_buff)
 			FD_CLR(sockfd, &readfds);
-			data_read = recv(sockfd, recieve_buff, 255, 0);
+			data_read = recv(sockfd, recieve_buff, 2500, 0);
 			if (data_read > 0) {
-				printf("%s\n", recieve_buff);
+#if 0
+				FILE* Test;
+				Test = fopen("/mnt/dmp.txt", "w+");
+				for (int i = 0; i < 40 * 40; i++) {
+					if (i % 40 == 0 && i != 0) {
+						fprintf(Test, "\n");
+					}
+					fprintf(Test, "%d,", recieve_buff[i]);
+				}
+				fclose(Test);
+#endif
 				break; 											//break out of while loop and exit
 			}
 		}
