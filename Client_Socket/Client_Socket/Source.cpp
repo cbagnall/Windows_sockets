@@ -16,6 +16,9 @@ fd_set readfds; //set of socket file_descriptors
 
 int main(int argc, char *argv[])
 {
+	WSADATA wsadata;
+	WSAStartup(MAKEWORD(2, 2), &wsadata); // 2.2 version
+
 	int sockfd, portnum;
 	int data_write = 0;
 	int data_read = 0;
@@ -82,5 +85,8 @@ int main(int argc, char *argv[])
 		}
 	}
 	closesocket(sockfd);
+
+	WSACleanup();
+
 	return 0;
 }
