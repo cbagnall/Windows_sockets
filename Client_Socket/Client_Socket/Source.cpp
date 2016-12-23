@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <winsock2.h>
-
+#include <string>
 
 fd_set readfds; //set of socket file_descriptors
 
@@ -25,8 +25,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
 
-	char send_buff[256];
-	char recieve_buff[256];
+	unsigned char recieve_buff[2500];
 	if (argc < 3) {
 		fprintf(stderr, "usage %s hostname port\n", argv[0]);		//check for invalid input arguments
 		exit(0);
@@ -44,15 +43,19 @@ int main(int argc, char *argv[])
 	}
 	memset((char *)&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
-	memcpy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
-
+	serv_addr.sin_addr.S_un.S_addr = inet_addr(argv[1]);
 	serv_addr.sin_port = htons(portnum);
-	if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)	//connect to host
+
+	int connectResult = connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+	if (connectResult < 0)	//connect to host
+	{
 		perror("error connecting");
+		exit(1);
+	}
 	printf("[Client] Connected to server: %s on portnumber: %d\n", server->h_name, portnum);
 
 	int request[41]{ 0 };
-
+	
 	while (true) {
 		FD_ZERO(&readfds);										//clear socket set
 		FD_SET(sockfd, &readfds); 								//add socket to set
@@ -65,11 +68,10 @@ int main(int argc, char *argv[])
 		request[3] = 40;
 		request[4] = 40;
 
-
-		data_write = send(sockfd, (char*)request, 41 * sizeof(int), 0); //send data to server
+		data_write = send(sockfd, (char *)request, sizeof(request), 0); //send data to server
 		if (data_write < 0) {
 			printf("Error sending message.\n");
-			memset(request, 0, 256);
+			memset(request, 0, sizeof(request));
 			continue;											//if data is invalid try again
 		}
 		Sleep(1000);												//delay so server can process message
@@ -82,11 +84,11 @@ int main(int argc, char *argv[])
 		else if (data_read > 0) {								//if socket contains data read it
 			memset(recieve_buff, 0, 2500);						//clear receive_buff (server clears send_buff)
 			FD_CLR(sockfd, &readfds);
-			data_read = recv(sockfd, recieve_buff, 2500, 0);
+			data_read = recv(sockfd, (char *)recieve_buff, 2500, 0);
 			if (data_read > 0) {
-#if 0
+#if 1
 				FILE* Test;
-				Test = fopen("/mnt/dmp.txt", "w+");
+				Test = fopen("C:\\Users\\hanbin.sock\\Documents\\GitProjects\\Windows_sockets\\Client_Socket\\dmp.txt", "w+");
 				for (int i = 0; i < 40 * 40; i++) {
 					if (i % 40 == 0 && i != 0) {
 						fprintf(Test, "\n");
